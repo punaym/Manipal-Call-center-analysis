@@ -1,0 +1,150 @@
+---
+title: "DV Assignment-2 Group-1"
+output: html_document
+---
+```{r}
+#install.packages("RColorBrewer")
+library(RColorBrewer)
+library(dplyr)
+library(ggplot2)
+library(plotrix)
+library(gridExtra)
+library(tidyr)
+```
+#Identify the market sources giving you the best result
+```{r}
+
+
+
+merged<-read.csv(("C:/Users/Administrator/Desktop/Data Visualization/Merged1.csv")) #importing dataset
+merged<-merged %>% filter(!Name %in% c(c("",NA))) #removing null & blank values
+
+lead<-read.csv("C:/Users/Administrator/Desktop/Data Visualization/Total Leads.csv")
+lead<- lead %>% filter(!Name %in% c(c("",NA))) #removing null & blank values
+
+merged$Order.Source<-gsub("Skill center invite","Skill Centre invite",merged$Order.Source)
+
+merged$Order.Source<-gsub("Skill Centre Enrollment","Skill Centre Enrolment",merged$Order.Source)
+
+
+
+ml<-merge(merged,lead,by="Name",all.y=T)
+ml<-ml %>% filter(!Order.Source %in% c("",NA)) #removing null & blank values
+
+
+
+```
+
+```{r}
+marksource<-ml %>% group_by(UTM.Source) %>%filter(Status=="Admission Taken"||Status=="Interested/Follow Up") %>% summarise(Total_count=n())
+marksource<-marksource%>% filter(!UTM.Source %in% c("",NA))
+
+marksource$UTM.Source<-gsub("Google-Search","Google",marksource$UTM.Source)
+marksource$UTM.Source<-gsub("exopNCwp","exop31",marksource$UTM.Source)
+marksource$UTM.Source<-gsub("threepointerrors=true","threepoint",marksource$UTM.Source)
+marksource$UTM.Source<-gsub("Intellectads_252","IntellectAds_325_text",marksource$UTM.Source)
+  ggplot(marksource,aes(x=UTM.Source,y=Total_count,fill=UTM.Source))+geom_bar(stat="Identity")+theme(axis.text.x = element_text(angle=90))+theme(legend.position = "bottom")+geom_text(aes(label=Total_count),hjust=0.5)+ggtitle("Market source giving best result")+ theme(
+plot.title = element_text(color="Black", size=20, face="bold.italic"))
+#(marksource$UTM.Source)
+```
+
+```{r}
+marksource<-ml %>% group_by(Course,UTM.Source) %>%filter(Status=="Admission Taken"||Status=="Interested/Follow Up") %>% summarise(Total_count=n()) %>% mutate(percent = Total_count / sum(Total_count) * 100)
+marksource<-marksource%>% filter(!UTM.Source %in% c("",NA))
+
+marksource$UTM.Source<-gsub("Google-Search","Google",marksource$UTM.Source)
+marksource$UTM.Source<-gsub("exopNCwp","exop31",marksource$UTM.Source)
+marksource$UTM.Source<-gsub("threepointerrors=true","threepoint",marksource$UTM.Source)
+marksource$UTM.Source<-gsub("Intellectads_252","IntellectAds_325_text",marksource$UTM.Source)
+  ggplot(marksource,aes(x=Course,y=percent,fill=UTM.Source))+geom_bar(stat="Identity")+theme(axis.text.x = element_text(angle=90))+theme(legend.position = "bottom")+geom_text(aes(x = Course,
+                y = percent,
+                label = sprintf("%0.1f%%", percent)),
+            position = position_stack(vjust=0.5))+coord_flip()+ggtitle("Market source giving best result according to courses")+ theme(
+plot.title = element_text(color="Black", size=20, face="bold.italic"))
+#(marksource$UTM.Source)
+```
+
+
+# which product(course) you should focus more
+```{r}
+
+
+gra<-ml %>% group_by(Course)%>%filter(Payment.Status=="success",Status=="Admission Taken") %>% summarise(Statu=n(),Total=sum(Order.Total),avg=Total/n()) %>% mutate(per=round((avg/sum(avg))*100,2))
+
+#View(gra)
+graph2<-ggplot(gra,aes(x=Course,y=avg,fill=Course),title="product to be focused")+geom_bar(stat ='Identity')+theme_grey()+geom_text(aes(label=sprintf("%0.1f%%", per)),hjust=-0.5)+coord_flip()+theme(legend.position = "bottom")+ggtitle("Revenue Genrated From Product")+ theme(
+plot.title = element_text(color="Black", size=20, face="bold.italic"))
+graph2
+
+
+```
+
+
+```{r}
+gra1<-ml %>% group_by(Course)%>%filter(Payment.Status=="success"&Status=="Admission Taken") %>% summarise(Admissions=n()) %>% mutate(per=round((Admissions/sum(Admissions))*100,2))
+
+#View(gra1)
+pie3D(gra1$Admissions,labels=sprintf("%0.1f%%",gra1$per),main="Students taken Admission in course", radius = 1,mar = c(1,2,3,4),explode = 0.1, col=brewer.pal(n = 12, name = "Paired"))
+par(xpd=TRUE)
+legend(1, 0.7, legend = gra1$Course, cex=0.7, yjust=0.6, xjust = -0.2, fill  = brewer.pal(n = 12, name = "Paired"))
+
+
+
+```
+```{r}
+
+rev <- read.csv("Merged1.csv")
+
+colSums(is.na(rev))
+rev1 <- rev %>% filter(Payment.Status=="success") %>% group_by(Transaction.Date,Course.Title,Counselor.Name) %>% summarise(count=n())
+str(rev$Transaction.Date)
+rev$Transaction.Date <- as.POSIXct(rev$Transaction.Date)
+
+separate(rev,col=Transaction.Date,into = c(""))
+rev1 <- rev1[order(rev1$Transaction.Date),]
+rev2 <- rev %>% filter(Payment.Status=="success") %>% group_by(Counselor.Name,Course.Title) %>% summarise(count=n())
+rev3 <- rev %>% filter(Payment.Status=="success") %>% group_by(Course.Title,Counselor.Name) %>% summarise(count=n())
+View(na.omit(rev3[rev3$Counselor.Name=="Himanshu Sharma",]))
+lead <- read.csv("Total_lead.csv")
+lead1 <- lead %>% group_by(UTM.Source,Course) %>% summarise(count=n())
+ggplot(lead1,aes(x=Course,y=count,fill=UTM.Source))+geom_bar(stat="identity")+coord_flip()
+```
+
+```{r}
+rev <- read.csv("Merged1.csv")
+colSums(is.na(rev))
+rev1 <- rev %>% filter(Payment.Status=="success") %>% group_by(Transaction.Date,Course.Title,Counselor.Name) %>% summarise(count=n())
+str(rev$Transaction.Date)
+rev$Transaction.Date <- as.POSIXct(rev$Transaction.Date)
+separate(rev,col=Transaction.Date,into = c(""))
+rev1 <- rev1[order(rev1$Transaction.Date),]
+rev2 <- rev %>% filter(Payment.Status=="success") %>% group_by(Counselor.Name,Course.Title) %>% summarise(count=n())
+rev3 <- rev %>% filter(Payment.Status=="success") %>% group_by(Course.Title,Counselor.Name) %>% summarise(count=n())
+View(na.omit(rev3[rev3$Counselor.Name=="Himanshu Sharma",]))
+lead <- read.csv("Total_lead.csv")
+lead1 <- lead %>% group_by(UTM.Source,Course) %>% summarise(count=n())
+ggplot(lead1,aes(x=Course,y=count,fill=UTM.Source))+geom_bar(stat="identity")+coord_flip()
+
+
+rev$Revenue_new=ifelse(rev$Currency.Code=='USD',rev$Amount*67.21,rev$Amount)
+rev2 <- rev %>% filter(Payment.Status=="success") %>%  group_by(Course.Title) %>% summarise(Total_Revenue=sum(Revenue_new))
+rev3 <- rev2 %>% group_by(Course.Title) %>% summarise(Revenue_percentage=Total_Revenue/sum(rev2$Total_Revenue)*100) %>% arrange(-Revenue_percentage) %>% mutate(cum_sum=cumsum(Revenue_percentage))
+rev_70_1 <- rev %>% filter(Course.Title %in% rev3$Course.Title[1],Payment.Status=="success") %>% group_by(Course.Title,Counselor.Name) %>% summarise(count=n()) %>% arrange(-count) %>% mutate(cum_sum=cumsum(count/sum(count)*100))
+rev_70_2 <- rev %>% filter(Course.Title %in% rev3$Course.Title[2],Payment.Status=="success") %>% group_by(Course.Title,Counselor.Name) %>% summarise(count=n()) %>% arrange(-count) %>% mutate(cum_sum=cumsum(count/sum(count)*100))
+rev_70_3 <- rev %>% filter(Course.Title %in% rev3$Course.Title[3],Payment.Status=="success") %>% group_by(Course.Title,Counselor.Name) %>% summarise(count=n()) %>% arrange(-count) %>% mutate(cum_sum=cumsum(count/sum(count)*100))
+rev_70_4 <- rev %>% filter(Course.Title %in% rev3$Course.Title[4],Payment.Status=="success") %>% group_by(Course.Title,Counselor.Name) %>% summarise(count=n()) %>% arrange(-count) %>% mutate(cum_sum=cumsum(count/sum(count)*100))
+rev_70_5 <- rev %>% filter(Course.Title %in% rev3$Course.Title[5],Payment.Status=="success") %>% group_by(Course.Title,Counselor.Name) %>% summarise(count=n()) %>% arrange(-count) %>% mutate(cum_sum=cumsum(count/sum(count)*100))
+
+rev_30 <- rev %>% filter(Course.Title %in% rev3$Course.Title[81:84],Payment.Status=="success") %>% group_by(Course.Title,Counselor.Name) %>% summarise(count=n())
+colSums(is.na(rev))
+str(rev$Transaction.Date)
+rev$Transaction.Date <- as.POSIXlt(rev$Transaction.Date)
+rev$month <- rev$Transaction.Date$mon +1
+rev$month <- as.factor(rev$month)
+rev_month <- rev %>% select(-Transaction.Date) %>%  group_by(month) %>% summarise(Total_Revenue=sum(Revenue_new)) %>% head(3)
+rev_month$month_name <- factor(c("March","April","May"),levels = c("March","April","May"))
+a <- ggplot(rev_month,aes(x=month_name,y=Total_Revenue,fill=month_name)) + geom_bar(stat = "identity")+labs(title="Monthwise Total Revenue")+theme(axis.title.x = element_blank(),axis.title.y = element_blank(),axis.text.x = element_blank(),axis.text.y = element_blank())+geom_label(stat = "identity",aes(label=Total_Revenue))
+ggsave("Plot_1.jpeg",a)
+
+```
+
